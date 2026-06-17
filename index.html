@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAPI Explorer — How Much Poverty Could Redistribution End?</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/dist/plot.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>RAPI Explorer</h1>
+    <p class="subtitle">The Redistribution-Adjusted Poverty Index — recompute the avoidable&ndash;structural split under your own parameters</p>
+    <nav id="tabs">
+      <button class="tab active" data-tab="explorer">Country Explorer</button>
+      <button class="tab" data-tab="rankings">Rankings</button>
+      <button class="tab" data-tab="redistribution">Redistribution</button>
+      <button id="about-btn" class="about-btn" aria-label="About / glossary">About</button>
+    </nav>
+  </header>
+
+  <div id="about-modal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
+      <button class="modal-close" data-close aria-label="Close">&times;</button>
+      <h2 id="about-title">About the RAPI Explorer</h2>
+      <p>
+        Interactive companion to <em>How Much Poverty Could Redistribution End?</em>
+        (Prydz, Lind, Moene). Every number here is recomputed in your browser from
+        each economy's World Bank PIP distribution (100 equal-population percentiles,
+        daily household welfare in 2021 PPP), so you can change the poverty line, the
+        affluence line and the mobilization rate and watch the avoidable&ndash;structural
+        decomposition respond. <strong>PIP data only</strong>; 172 economies, latest
+        survey wave with a 1990&ndash;2024 series.
+      </p>
+
+      <h3>The lines</h3>
+      <dl class="glossary">
+        <dt>Poverty line z<sub>p</sub></dt>
+        <dd>Default is the floorless Societal Poverty Line, z<sub>p</sub> = 1.30 + 0.5&nbsp;&times;&nbsp;median.
+          Switch to relative-to-mean, a fixed $/day line, or add a floor.</dd>
+        <dt>Affluence line z<sub>r</sub></dt>
+        <dd>Default 4&nbsp;&times;&nbsp;z<sub>p</sub> (&asymp; twice the median). Can also be set as a
+          multiple of the median, a top percentile, or a fixed $/day threshold.</dd>
+      </dl>
+
+      <h3>Accounting (no calibration)</h3>
+      <dl class="glossary">
+        <dt>G — poverty gap</dt><dd>Mean shortfall below z<sub>p</sub>, per capita ($/day).</dd>
+        <dt>S — affluent surplus</dt><dd>Mean income above z<sub>r</sub>, per capita ($/day).</dd>
+        <dt>&tau;* — required rate</dt><dd>&tau;* = G/S: the share of the affluent surplus that
+          would close the poverty gap at perfect transfer efficiency. &tau;* &lt; 1 means the
+          surplus exceeds the gap.</dd>
+        <dt>Capacity</dt><dd>S/G = 1/&tau;*.</dd>
+      </dl>
+
+      <h3>The decomposition (uses f and &beta;)</h3>
+      <dl class="glossary">
+        <dt>f — mobilization rate</dt><dd>Fraction of the affluent surplus a state can actually
+          mobilize (f = e&middot;&tau;, the surtax times its pass-through). Mobilizable resources M = f&middot;S.
+          Baseline f = 0.40.</dd>
+        <dt>P<sub>A</sub> — avoidable poverty</dt><dd>min{G, M}: the gap closable by domestic redistribution.</dd>
+        <dt>P<sub>S</sub> — structural poverty</dt><dd>max{0, G − M}: the residual genuine scarcity. G &equiv; P<sub>A</sub> + P<sub>S</sub>.</dd>
+        <dt>&xi; / AGR — avoidable share</dt><dd>&xi; = min{1, M/G} = min{1, f/&tau;*}. The share of the gap that is avoidable.</dd>
+        <dt>RAPI<sub>&beta;</sub></dt><dd>P<sub>A</sub> + &beta;P<sub>S</sub>, counting avoidable poverty in full and structural
+          poverty at a discount &beta; &isin; [0,1). Shown normalized by z<sub>p</sub> for cross-country
+          comparability (= [&xi; + &beta;(1−&xi;)] &times; FGT gap index). &beta; = 0.50 baseline.</dd>
+      </dl>
+
+      <p class="modal-footnote">
+        At the baseline (z<sub>p</sub> floorless SPL, z<sub>r</sub> = 4z<sub>p</sub>, f = 0.40, &beta; = 0.50)
+        these reproduce the paper's headline figures. Formulas: paper &sect;2.
+      </p>
+    </div>
+  </div>
+
+  <main>
+    <!-- TAB 1: Country Explorer -->
+    <section id="tab-explorer" class="tab-content active">
+      <div class="explorer-layout">
+        <aside class="sidebar">
+          <div class="control-group">
+            <label for="country-search">Countries</label>
+            <input type="text" id="country-search" placeholder="Search countries...">
+            <div id="country-list" class="country-list"></div>
+            <div id="selected-countries" class="selected-tags"></div>
+          </div>
+
+          <div class="control-group">
+            <label>Metric <a href="#" class="help-link" data-open-about aria-label="glossary">?</a></label>
+            <div id="metric-radios" class="radio-group">
+              <label title="Redistribution-Adjusted Poverty Index = P_A + βP_S, normalized by z_p."><input type="radio" name="metric" value="rapi" checked> RAPI</label>
+              <label title="Avoidable poverty P_A = min{G, fS} ($/day)."><input type="radio" name="metric" value="pa"> P_A</label>
+              <label title="Structural poverty P_S = max{0, G − fS} ($/day)."><input type="radio" name="metric" value="ps"> P_S</label>
+              <label title="Avoidable share ξ = min{1, f/τ*}."><input type="radio" name="metric" value="agr"> &xi;/AGR</label>
+              <label title="Required rate τ* = G/S."><input type="radio" name="metric" value="taustar"> &tau;*</label>
+              <label title="Capacity ratio S/G = 1/τ*."><input type="radio" name="metric" value="capacity"> Capacity</label>
+              <label title="Poverty headcount below z_p."><input type="radio" name="metric" value="hp"> H_p</label>
+              <label title="Affluent share above z_r."><input type="radio" name="metric" value="ha"> H_a</label>
+              <label title="Gini of daily welfare."><input type="radio" name="metric" value="gini"> Gini</label>
+              <label title="GDP per capita, $/day."><input type="radio" name="metric" value="gdp_pc"> GDP/cap</label>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="color-by">Color by</label>
+            <select id="color-by">
+              <option value="region">Region</option>
+              <option value="welfare_type">Welfare Type</option>
+              <option value="agr_group">Avoidability</option>
+            </select>
+          </div>
+
+          <details class="control-group" open>
+            <summary>Poverty Line z<sub>p</sub></summary>
+            <select id="zp-type">
+              <option value="relative-median">Relative to median</option>
+              <option value="relative-mean">Relative to mean</option>
+              <option value="absolute">Absolute ($/day)</option>
+            </select>
+            <div id="zp-relative-controls">
+              <label>Intercept: <span id="zp-intercept-value">1.30</span></label>
+              <input type="range" id="zp-intercept" min="0" max="5" value="1.30" step="0.10">
+              <label>Slope: <span id="zp-slope-value">0.50</span></label>
+              <input type="range" id="zp-slope" min="0" max="1" value="0.50" step="0.05">
+            </div>
+            <div id="zp-absolute-controls" style="display:none">
+              <label>Poverty line: $<span id="zp-abs-value">3.00</span>/day</label>
+              <input type="range" id="zp-abs" min="1" max="30" value="3.00" step="0.50">
+            </div>
+            <label class="inline-check"><input type="checkbox" id="zp-floor-check">
+              Floor: $<input type="number" id="zp-floor" value="3.00" min="0" max="20" step="0.10" style="width:55px">/day
+            </label>
+          </details>
+
+          <details class="control-group" open>
+            <summary>Affluence Line z<sub>r</sub></summary>
+            <select id="za-type">
+              <option value="multiple">Multiple of poverty line</option>
+              <option value="median-multiple">Multiple of median</option>
+              <option value="percentile">Top percentile</option>
+              <option value="absolute">Absolute ($/day)</option>
+            </select>
+            <div id="za-multiple-controls">
+              <label>Multiplier k: <span id="k-value">4</span> &times; z<sub>p</sub></label>
+              <input type="range" id="k-slider" min="1" max="10" value="4" step="0.5">
+            </div>
+            <div id="za-median-controls" style="display:none">
+              <label>Multiplier: <span id="km-value">2</span> &times; median</label>
+              <input type="range" id="km-slider" min="1" max="6" value="2" step="0.25">
+            </div>
+            <div id="za-percentile-controls" style="display:none">
+              <label>Top <span id="za-pctile-value">10</span>%</label>
+              <input type="range" id="za-pctile" min="1" max="50" value="10" step="1">
+            </div>
+            <div id="za-absolute-controls" style="display:none">
+              <label>Threshold: $<span id="za-abs-value">30</span>/day</label>
+              <input type="range" id="za-abs" min="5" max="200" value="30" step="1">
+            </div>
+          </details>
+
+          <details class="control-group" open>
+            <summary>Mobilization &amp; weight</summary>
+            <label>Mobilization f: <span id="f-value">0.40</span></label>
+            <input type="range" id="f-slider" min="0" max="0.8" value="0.40" step="0.05">
+            <div class="beta-hint">share of surplus the state can mobilize (M = f&middot;S)</div>
+            <label>&beta; weight: <span id="beta-value">0.50</span></label>
+            <input type="range" id="beta-slider" min="0" max="1" value="0.50" step="0.05">
+            <div class="beta-hint">0 = only avoidable counts &nbsp; 1 = full structural weight (FGT gap)</div>
+          </details>
+
+          <div class="control-group">
+            <button id="download-data" class="download-btn">Download Data (CSV)</button>
+          </div>
+        </aside>
+
+        <div class="panels">
+          <div class="panel" id="panel-map">
+            <h3>World Map</h3>
+            <div id="map-container"></div>
+          </div>
+          <div class="panel" id="panel-scatter">
+            <h3>Scatter Plot
+              <span class="scatter-axis-selectors">
+                X: <select id="scatter-x">
+                  <option value="gdp_pc" selected>GDP/cap</option>
+                  <option value="median_welfare">Median $/day</option>
+                  <option value="gini">Gini</option>
+                  <option value="rapi">RAPI</option>
+                  <option value="pa">P_A</option>
+                  <option value="ps">P_S</option>
+                  <option value="agr">&xi;/AGR</option>
+                  <option value="taustar">&tau;*</option>
+                  <option value="capacity">Capacity</option>
+                  <option value="hp">H_p</option>
+                  <option value="ha">H_a</option>
+                  <option value="palma">Palma</option>
+                </select>
+                Y: <select id="scatter-y">
+                  <option value="rapi" selected>RAPI</option>
+                  <option value="pa">P_A</option>
+                  <option value="ps">P_S</option>
+                  <option value="agr">&xi;/AGR</option>
+                  <option value="taustar">&tau;*</option>
+                  <option value="capacity">Capacity</option>
+                  <option value="hp">H_p</option>
+                  <option value="ha">H_a</option>
+                  <option value="gini">Gini</option>
+                  <option value="gdp_pc">GDP/cap</option>
+                  <option value="median_welfare">Median $/day</option>
+                  <option value="palma">Palma</option>
+                </select>
+              </span>
+            </h3>
+            <div id="scatter-container"></div>
+          </div>
+          <div class="panel" id="panel-timeseries">
+            <h3>Time Series</h3>
+            <div id="timeseries-container"></div>
+          </div>
+          <div class="panel" id="panel-decomposition">
+            <h3>RAPI Decomposition</h3>
+            <div id="decomposition-container"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Rankings -->
+    <section id="tab-rankings" class="tab-content">
+      <div class="rankings-layout">
+        <div class="rankings-controls">
+          <div class="view-toggle" id="rankings-view-toggle">
+            <button class="view-btn active" data-view="bar">Bar Chart</button>
+            <button class="view-btn" data-view="decomp">Decomposition</button>
+            <button class="view-btn" data-view="table">Table</button>
+          </div>
+          <select id="rankings-metric">
+            <option value="rapi">RAPI</option>
+            <option value="pa">P_A — Avoidable Poverty</option>
+            <option value="ps">P_S — Structural Poverty</option>
+            <option value="agr">&xi; — Avoidable Share</option>
+            <option value="taustar">&tau;* — Required Rate</option>
+            <option value="capacity">Capacity Ratio</option>
+            <option value="hp">H_p — Poverty Rate</option>
+            <option value="ha">H_a — Affluent Share</option>
+          </select>
+          <div class="beta-control-inline">
+            <label>&beta;: <span id="rankings-beta-value">0.50</span></label>
+            <input type="range" id="rankings-beta-slider" min="0" max="1" value="0.50" step="0.05">
+          </div>
+          <select id="rankings-region-filter">
+            <option value="">All Regions</option>
+          </select>
+          <button id="csv-export">Export CSV</button>
+        </div>
+        <div id="rankings-bar-container"></div>
+        <div id="rankings-decomp-container" style="display:none"></div>
+        <div id="rankings-table-container"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Redistribution -->
+    <section id="tab-redistribution" class="tab-content">
+      <div class="explorer-layout">
+        <aside class="sidebar">
+          <details class="control-group" open>
+            <summary>Mobilization &amp; weight</summary>
+            <label>Mobilization f: <span id="redist-f-value">0.40</span></label>
+            <input type="range" id="redist-f-slider" min="0" max="0.8" value="0.40" step="0.05">
+            <label>&beta; weight: <span id="redist-beta-value">0.50</span></label>
+            <input type="range" id="redist-beta-slider" min="0" max="1" value="0.50" step="0.05">
+          </details>
+          <div class="control-group">
+            <label class="inline-check"><input type="checkbox" id="high-capacity-toggle"> High-capacity only (&tau;* &lt; 1)</label>
+          </div>
+          <div class="control-group">
+            <label>Region Filter</label>
+            <div id="redist-region-checks" class="checkbox-group"></div>
+          </div>
+        </aside>
+        <div class="panels">
+          <div class="panel" id="panel-taustar-capacity">
+            <h3>&tau;* vs Capacity</h3>
+            <div id="taustar-capacity-container"></div>
+          </div>
+          <div class="panel" id="panel-beta-sensitivity">
+            <h3>&beta; Sensitivity</h3>
+            <div id="beta-sensitivity-container"></div>
+          </div>
+          <div class="panel" id="panel-regional">
+            <h3>Regional Comparison</h3>
+            <div id="regional-container"></div>
+          </div>
+          <div class="panel" id="panel-waterfall">
+            <h3>Country Decomposition</h3>
+            <div id="waterfall-container"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Based on "How Much Poverty Could Redistribution End?" (Prydz, Lind, Moene). World Bank PIP, 2021 PPP.</p>
+  </footer>
+
+  <script src="js/compute.js?v=2"></script>
+  <script src="js/data-loader.js?v=2"></script>
+  <script src="js/charts/map.js?v=2"></script>
+  <script src="js/charts/scatter.js?v=2"></script>
+  <script src="js/charts/timeseries.js?v=2"></script>
+  <script src="js/charts/rankings.js?v=2"></script>
+  <script src="js/charts/decomposition.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
+  <script>
+    (function () {
+      const modal = document.getElementById("about-modal");
+      if (!modal) return;
+      const open = (e) => { if (e) e.preventDefault(); modal.hidden = false; };
+      const close = () => { modal.hidden = true; };
+      document.getElementById("about-btn").addEventListener("click", open);
+      modal.addEventListener("click", (e) => { if (e.target.matches("[data-close]")) close(); });
+      document.querySelectorAll("[data-open-about]").forEach(el => el.addEventListener("click", open));
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) close(); });
+    })();
+  </script>
+</body>
+</html>
