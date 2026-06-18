@@ -1,11 +1,11 @@
 /**
- * Data loading for the RAPI Explorer (live-recompute build).
+ * Data loading for the Avoidable Poverty Index (AP) explorer (live-recompute build).
  *
  *   meta.json         identifiers + non-recomputable fields (region, gdp/cap, pop)
  *   dist_latest.json  {code: {y, w[100], pop}}        latest PIP wave
  *   dist_series.json  {code: {YYYY: {w[100], s}}}     1990-2024 lined-up series
  *
- * Everything else (z_p, z_r, G, S, τ*, P_A, P_S, ξ, RAPI, Gini, headcounts)
+ * Everything else (z_p, z_r, G, S, τ*, P_A, P_S, ξ, AP, Gini, headcounts)
  * is recomputed in the browser by compute.js under the user's parameters.
  */
 
@@ -40,7 +40,7 @@ const DataLoader = {
     this.countries.sort((a, b) => a.country.localeCompare(b.country));
     this.regions = Array.from(regionSet).sort();
 
-    console.log(`RAPI data: ${this.meta.length} PIP economies, ` +
+    console.log(`AP data: ${this.meta.length} PIP economies, ` +
       `${Object.keys(this.series).length} with series.`);
   },
 

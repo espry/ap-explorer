@@ -1,5 +1,5 @@
 /**
- * Live re-computation engine for the RAPI / avoidable-structural framework.
+ * Live re-computation engine for the Avoidable Poverty Index (AP) / avoidable-structural framework.
  *
  * Everything is recomputed in the browser from a country's 100-percentile PIP
  * distribution (equal-population bins, 2021 PPP $/day) under user-chosen lines
@@ -11,7 +11,7 @@
  *   M  = f · S                            mobilizable resources
  *   P_A = min{G, M}   P_S = max{0, G−M}   G ≡ P_A + P_S
  *   ξ (AGR) = min{1, M/G} = min{1, f/τ*}
- *   RAPI_β = P_A + β P_S = [ξ + β(1−ξ)]·G      (reported normalized by z_p)
+ *   AP_β = P_A + β P_S = [ξ + β(1−ξ)]·G        (Avoidable Poverty Index; reported normalized by z_p)
  *
  * Validated against the paper's precomputed baseline (f=0.40, β=0.50,
  * z_p = 1.30+0.5·median floorless, z_r = 4 z_p): median error <0.5%.
@@ -69,7 +69,7 @@ const Compute = {
   },
 
   /**
-   * Recompute the full RAPI record for one country.
+   * Recompute the full AP record for one country.
    * @param {number[]} wRaw - 100 percentile mean welfares (ascending, $/day)
    * @param {object} zpP - poverty-line params
    * @param {object} zaP - affluence-line params
@@ -105,7 +105,7 @@ const Compute = {
     const ps = Math.max(0, G - M);
     const agr = G > 0 ? pa / G : null;               // ξ
     const p1 = zp > 0 ? G / zp : null;               // FGT poverty-gap index
-    const rapi = zp > 0 ? (pa + beta * ps) / zp : null; // RAPI_β normalized by z_p
+    const rapi = zp > 0 ? (pa + beta * ps) / zp : null; // AP_β normalized by z_p
 
     return {
       median_welfare: median, mean_welfare: mean,

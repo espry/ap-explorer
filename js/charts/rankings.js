@@ -122,7 +122,7 @@ const RankingsChart = {
       lg.append("rect").attr("x", 130).attr("width", 12).attr("height", 10).attr("fill", "#94a3b8").attr("opacity", 0.85);
       lg.append("text").attr("x", 146).attr("y", 9).attr("font-size", 11).attr("fill", "#666").text("\u03B2\u00D7P_S (Structural)");
     } else {
-      // Simple bar for non-RAPI metrics
+      // Simple bar for non-AP metrics
       const maxVal = d3.max(top25, d => d[metric]) || 1;
       const x = d3.scaleLinear().domain([0, maxVal]).range([0, w - marginLeft - 20]);
       const y = d3.scaleBand().domain(top25.map(d => d.code)).range([20, h - 10]).padding(0.12);
@@ -170,7 +170,7 @@ const RankingsChart = {
       .attr("width", w)
       .attr("height", h);
 
-    // Find max RAPI for scaling
+    // Find max AP for scaling
     const maxRapi = d3.max(valid, d => (d.pa + d.ps) / d.zp) || 1;
     const x = d3.scaleLinear().domain([0, maxRapi]).range([0, barWidth]);
 
@@ -245,7 +245,7 @@ const RankingsChart = {
       { key: "country", label: "Country", fmt: d => d },
       { key: "region", label: "Region", fmt: d => d },
       { key: "year", label: "Year", fmt: d => d },
-      { key: "rapi", label: "RAPI", fmt: d => d != null ? d.toFixed(4) : "—" },
+      { key: "rapi", label: "AP", fmt: d => d != null ? d.toFixed(4) : "—" },
       { key: "pa", label: "P_A", fmt: d => d != null ? d.toFixed(3) : "—" },
       { key: "ps", label: "P_S", fmt: d => d != null ? d.toFixed(3) : "—" },
       { key: "agr", label: "AGR", fmt: d => d != null ? (d * 100).toFixed(1) + "%" : "—" },

@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RAPI Explorer — How Much Poverty Could Redistribution End?</title>
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <title>Avoidable Poverty Index — How Much Poverty Could Redistribution End?</title>
+  <link rel="stylesheet" href="css/style.css?v=3">
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/dist/plot.umd.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>RAPI Explorer</h1>
-    <p class="subtitle">The Redistribution-Adjusted Poverty Index — recompute the avoidable&ndash;structural split under your own parameters</p>
+    <h1>Avoidable Poverty Index <span class="wip-badge">★ work in progress</span></h1>
+    <p class="subtitle">AP<sub>&beta;</sub> &mdash; recompute the avoidable&ndash;structural poverty decomposition under your own parameters</p>
     <nav id="tabs">
       <button class="tab active" data-tab="explorer">Country Explorer</button>
       <button class="tab" data-tab="rankings">Rankings</button>
-      <button class="tab" data-tab="redistribution">Redistribution</button>
       <button id="about-btn" class="about-btn" aria-label="About / glossary">About</button>
     </nav>
   </header>
@@ -25,7 +24,7 @@
     <div class="modal-backdrop" data-close></div>
     <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
       <button class="modal-close" data-close aria-label="Close">&times;</button>
-      <h2 id="about-title">About the RAPI Explorer</h2>
+      <h2 id="about-title">About the Avoidable Poverty Index</h2>
       <p>
         Interactive companion to <em>How Much Poverty Could Redistribution End?</em>
         (Prydz, Lind, Moene). Every number here is recomputed in your browser from
@@ -64,7 +63,7 @@
         <dt>P<sub>A</sub> — avoidable poverty</dt><dd>min{G, M}: the gap closable by domestic redistribution.</dd>
         <dt>P<sub>S</sub> — structural poverty</dt><dd>max{0, G − M}: the residual genuine scarcity. G &equiv; P<sub>A</sub> + P<sub>S</sub>.</dd>
         <dt>&xi; / AGR — avoidable share</dt><dd>&xi; = min{1, M/G} = min{1, f/&tau;*}. The share of the gap that is avoidable.</dd>
-        <dt>RAPI<sub>&beta;</sub></dt><dd>P<sub>A</sub> + &beta;P<sub>S</sub>, counting avoidable poverty in full and structural
+        <dt>AP<sub>&beta;</sub> — Avoidable Poverty Index</dt><dd>P<sub>A</sub> + &beta;P<sub>S</sub>, counting avoidable poverty in full and structural
           poverty at a discount &beta; &isin; [0,1). Shown normalized by z<sub>p</sub> for cross-country
           comparability (= [&xi; + &beta;(1−&xi;)] &times; FGT gap index). &beta; = 0.50 baseline.</dd>
       </dl>
@@ -91,7 +90,7 @@
           <div class="control-group">
             <label>Metric <a href="#" class="help-link" data-open-about aria-label="glossary">?</a></label>
             <div id="metric-radios" class="radio-group">
-              <label title="Redistribution-Adjusted Poverty Index = P_A + βP_S, normalized by z_p."><input type="radio" name="metric" value="rapi" checked> RAPI</label>
+              <label title="Avoidable Poverty Index AP_β = P_A + βP_S, normalized by z_p."><input type="radio" name="metric" value="rapi" checked> AP</label>
               <label title="Avoidable poverty P_A = min{G, fS} ($/day)."><input type="radio" name="metric" value="pa"> P_A</label>
               <label title="Structural poverty P_S = max{0, G − fS} ($/day)."><input type="radio" name="metric" value="ps"> P_S</label>
               <label title="Avoidable share ξ = min{1, f/τ*}."><input type="radio" name="metric" value="agr"> &xi;/AGR</label>
@@ -188,7 +187,7 @@
                   <option value="gdp_pc" selected>GDP/cap</option>
                   <option value="median_welfare">Median $/day</option>
                   <option value="gini">Gini</option>
-                  <option value="rapi">RAPI</option>
+                  <option value="rapi">AP</option>
                   <option value="pa">P_A</option>
                   <option value="ps">P_S</option>
                   <option value="agr">&xi;/AGR</option>
@@ -199,7 +198,7 @@
                   <option value="palma">Palma</option>
                 </select>
                 Y: <select id="scatter-y">
-                  <option value="rapi" selected>RAPI</option>
+                  <option value="rapi" selected>AP</option>
                   <option value="pa">P_A</option>
                   <option value="ps">P_S</option>
                   <option value="agr">&xi;/AGR</option>
@@ -221,7 +220,7 @@
             <div id="timeseries-container"></div>
           </div>
           <div class="panel" id="panel-decomposition">
-            <h3>RAPI Decomposition</h3>
+            <h3>AP Decomposition</h3>
             <div id="decomposition-container"></div>
           </div>
         </div>
@@ -238,7 +237,7 @@
             <button class="view-btn" data-view="table">Table</button>
           </div>
           <select id="rankings-metric">
-            <option value="rapi">RAPI</option>
+            <option value="rapi">AP — Avoidable Poverty Index</option>
             <option value="pa">P_A — Avoidable Poverty</option>
             <option value="ps">P_S — Structural Poverty</option>
             <option value="agr">&xi; — Avoidable Share</option>
@@ -262,59 +261,20 @@
       </div>
     </section>
 
-    <!-- TAB 3: Redistribution -->
-    <section id="tab-redistribution" class="tab-content">
-      <div class="explorer-layout">
-        <aside class="sidebar">
-          <details class="control-group" open>
-            <summary>Mobilization &amp; weight</summary>
-            <label>Mobilization f: <span id="redist-f-value">0.40</span></label>
-            <input type="range" id="redist-f-slider" min="0" max="0.8" value="0.40" step="0.05">
-            <label>&beta; weight: <span id="redist-beta-value">0.50</span></label>
-            <input type="range" id="redist-beta-slider" min="0" max="1" value="0.50" step="0.05">
-          </details>
-          <div class="control-group">
-            <label class="inline-check"><input type="checkbox" id="high-capacity-toggle"> High-capacity only (&tau;* &lt; 1)</label>
-          </div>
-          <div class="control-group">
-            <label>Region Filter</label>
-            <div id="redist-region-checks" class="checkbox-group"></div>
-          </div>
-        </aside>
-        <div class="panels">
-          <div class="panel" id="panel-taustar-capacity">
-            <h3>&tau;* vs Capacity</h3>
-            <div id="taustar-capacity-container"></div>
-          </div>
-          <div class="panel" id="panel-beta-sensitivity">
-            <h3>&beta; Sensitivity</h3>
-            <div id="beta-sensitivity-container"></div>
-          </div>
-          <div class="panel" id="panel-regional">
-            <h3>Regional Comparison</h3>
-            <div id="regional-container"></div>
-          </div>
-          <div class="panel" id="panel-waterfall">
-            <h3>Country Decomposition</h3>
-            <div id="waterfall-container"></div>
-          </div>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer>
     <p>Based on "How Much Poverty Could Redistribution End?" (Prydz, Lind, Moene). World Bank PIP, 2021 PPP.</p>
   </footer>
 
-  <script src="js/compute.js?v=2"></script>
-  <script src="js/data-loader.js?v=2"></script>
-  <script src="js/charts/map.js?v=2"></script>
-  <script src="js/charts/scatter.js?v=2"></script>
-  <script src="js/charts/timeseries.js?v=2"></script>
-  <script src="js/charts/rankings.js?v=2"></script>
-  <script src="js/charts/decomposition.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/compute.js?v=3"></script>
+  <script src="js/data-loader.js?v=3"></script>
+  <script src="js/charts/map.js?v=3"></script>
+  <script src="js/charts/scatter.js?v=3"></script>
+  <script src="js/charts/timeseries.js?v=3"></script>
+  <script src="js/charts/rankings.js?v=3"></script>
+  <script src="js/charts/decomposition.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
   <script>
     (function () {
       const modal = document.getElementById("about-modal");

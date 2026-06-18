@@ -600,3 +600,19 @@ details.control-group summary {
 .glossary dt { font-weight: 600; color: var(--text); white-space: nowrap; }
 .glossary dd { color: var(--text-muted); }
 .modal-footnote { margin-top: 16px; font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+
+/* Work-in-progress badge in the header */
+.wip-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  padding: 2px 10px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+}

@@ -1,8 +1,8 @@
-# RAPI Explorer
+# Avoidable Poverty Index (AP) — Explorer
 
 Interactive companion to **"How Much Poverty Could Redistribution End?"**
 (Prydz, Lind, Moene). A static, client-side tool that recomputes the
-Redistribution-Adjusted Poverty Index and its avoidable–structural
+**Avoidable Poverty Index (AP_β)** and its avoidable–structural
 decomposition **live in the browser** under user-chosen parameters.
 
 **PIP data only** — 172 World Bank PIP economies, latest survey wave plus a
@@ -28,7 +28,7 @@ G  = mean poverty gap below z_p           S  = mean surplus above z_r
 τ* = G / S        (required rate)         M  = f · S   (mobilizable)
 P_A = min{G, M}   (avoidable)             P_S = max{0, G − M}  (structural)
 ξ  = min{1, M/G} = min{1, f/τ*}           (avoidable share / AGR)
-RAPI_β = P_A + βP_S                        (shown normalized by z_p)
+AP_β   = P_A + βP_S                        (shown normalized by z_p)
 ```
 
 At the baseline (floorless SPL, z\_r = 4z\_p, f = 0.40, β = 0.50) the tool
@@ -50,7 +50,7 @@ GDP/cap, population), and writes `data/{meta,dist_latest,dist_series}.json`.
 
 ```
 index.html            layout, controls, About modal
-js/compute.js         the live RAPI engine (validated <0.5% vs paper baseline)
+js/compute.js         the live AP engine (validated <0.5% vs paper baseline)
 js/data-loader.js     loads the three JSON files
 js/app.js             state, parameter wiring, per-render recompute
 js/charts/*.js        map · scatter · timeseries · rankings · decomposition

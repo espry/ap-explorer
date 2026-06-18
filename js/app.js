@@ -1,13 +1,14 @@
 /**
- * RAPI Explorer — live-recompute build.
+ * Avoidable Poverty Index (AP) — live-recompute build.
  *
  * Every metric is recomputed in the browser (compute.js) from each economy's
  * PIP distribution under the user-chosen poverty line, affluence line,
  * mobilization rate f and structural weight β. PIP only.
+ * (Internal field name `rapi` is the AP_β index, kept stable to avoid churn.)
  */
 
 const METRIC_LABELS = {
-  rapi: "RAPI",
+  rapi: "AP",
   pa: "P_A (Avoidable)",
   ps: "P_S (Structural)",
   agr: "ξ / AGR",
@@ -127,7 +128,6 @@ const App = {
     this._wireBetaSliders();
     this._wireFSliders();
     this._wireRankingsControls();
-    this._wireRedistributionControls();
 
     this._hideLoading();
     this.render();
@@ -247,8 +247,8 @@ const App = {
 
   // --- β sliders (synced) ---
   _wireBetaSliders() {
-    const ids = ["beta-slider", "rankings-beta-slider", "redist-beta-slider"];
-    const labels = ["beta-value", "rankings-beta-value", "redist-beta-value"];
+    const ids = ["beta-slider", "rankings-beta-slider"];
+    const labels = ["beta-value", "rankings-beta-value"];
     const sync = () => {
       ids.forEach((s, i) => {
         const el = document.getElementById(s), lbl = document.getElementById(labels[i]);
@@ -266,10 +266,10 @@ const App = {
     });
   },
 
-  // --- f (mobilization) sliders (synced) ---
+  // --- f (mobilization) slider ---
   _wireFSliders() {
-    const ids = ["f-slider", "redist-f-slider"];
-    const labels = ["f-value", "redist-f-value"];
+    const ids = ["f-slider"];
+    const labels = ["f-value"];
     const sync = () => {
       ids.forEach((s, i) => {
         const el = document.getElementById(s), lbl = document.getElementById(labels[i]);
@@ -315,24 +315,6 @@ const App = {
       });
     });
     document.getElementById("csv-export").addEventListener("click", () => this.downloadData());
-  },
-
-  // --- Redistribution controls ---
-  _wireRedistributionControls() {
-    const hc = document.getElementById("high-capacity-toggle");
-    if (hc) hc.addEventListener("change", () => { if (this.state.activeTab === "redistribution") this.render(); });
-
-    const container = document.getElementById("redist-region-checks");
-    if (container) {
-      for (const r of DataLoader.regions) {
-        const label = document.createElement("label");
-        const cb = document.createElement("input");
-        cb.type = "checkbox"; cb.value = r; cb.checked = true;
-        cb.addEventListener("change", () => { if (this.state.activeTab === "redistribution") this.render(); });
-        label.appendChild(cb); label.appendChild(document.createTextNode(" " + r));
-        container.appendChild(label);
-      }
-    }
   },
 
   // --- Country selection ---
@@ -383,7 +365,7 @@ const App = {
     const cols = ["code", "country", "region", "year", "rapi_live", "pa", "ps", "agr",
       "taustar", "capacity", "hp", "hm", "ha", "p0", "p1", "gini", "palma",
       "gdp_pc", "median_welfare", "mean_welfare", "zp", "za"];
-    const headers = cols.map(c => c === "rapi_live" ? "rapi" : c);
+    const headers = cols.map(c => c === "rapi_live" ? "ap" : c);
     let csv = headers.join(",") + "\n";
     for (const row of data) {
       csv += cols.map(c => {
@@ -394,7 +376,7 @@ const App = {
       }).join(",") + "\n";
     }
     const z = this.state.zp, a = this.state.za;
-    csv += `\n# RAPI Explorer (PIP, 2021 PPP). Parameters:\n`;
+    csv += `\n# Avoidable Poverty Index (AP) — PIP, 2021 PPP. Parameters:\n`;
     csv += `# poverty_line=${JSON.stringify(z)}\n# affluence_line=${JSON.stringify(a)}\n`;
     csv += `# f=${this.state.f}  beta=${this.state.beta}\n`;
     const blob = new Blob([csv], { type: "text/csv" });
@@ -409,7 +391,6 @@ const App = {
     switch (this.state.activeTab) {
       case "explorer": this._renderExplorer(); break;
       case "rankings": this._renderRankings(); break;
-      case "redistribution": this._renderRedistribution(); break;
     }
   },
 
@@ -423,7 +404,6 @@ const App = {
   },
 
   _renderRankings() { RankingsChart.update(this.getData(), this.state); },
-  _renderRedistribution() { DecompositionChart.updateRedistribution(this.getData(), this.state); },
 };
 
 window.addEventListener("DOMContentLoaded", () => {

@@ -278,7 +278,7 @@ const DecompositionChart = {
       .attr("transform", "rotate(-90)")
       .attr("x", -(margin.top + ph / 2)).attr("y", 14)
       .attr("text-anchor", "middle").attr("font-size", 12).attr("fill", "#666")
-      .text("RAPI");
+      .text("AP");
   },
 
   _renderRegional(data, state) {
